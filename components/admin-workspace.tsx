@@ -90,8 +90,6 @@ const resizeDirections: ResizeDirection[] = [
   'w',
 ];
 
-const fontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32];
-
 const FontSizeMark = Mark.create({
   name: 'fontSize',
   addAttributes() {
@@ -124,7 +122,7 @@ function numericFontSize(value: unknown) {
       : typeof value === 'string'
         ? Number.parseFloat(value)
         : Number.NaN;
-  return Number.isFinite(size) && size >= 8 && size <= 72 ? size : undefined;
+  return Number.isFinite(size) && size >= 1 && size <= 100 ? size : undefined;
 }
 
 function ResizableMediaNodeView({
@@ -395,6 +393,7 @@ export function AdminWorkspace({
     'idle' | 'recording' | 'paused' | 'uploading'
   >('idle');
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [fontSizeInput, setFontSizeInput] = useState('10');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -424,6 +423,12 @@ export function AdminWorkspace({
         content: currentEditor.getJSON() as BlogNode,
       }));
       setMessage('저장되지 않은 변경사항이 있습니다.');
+    },
+    onSelectionUpdate: ({ editor: currentEditor }) => {
+      const size = numericFontSize(
+        currentEditor.getAttributes('fontSize').size,
+      );
+      setFontSizeInput(String(size ?? 10));
     },
   });
 
@@ -995,32 +1000,43 @@ export function AdminWorkspace({
 
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
               <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted/45 p-2">
-                <label className="mr-1 inline-flex h-8 items-center gap-1 rounded-lg border border-input bg-card px-2 text-xs font-semibold text-muted-foreground">
+                <label className="mr-1 inline-flex h-8 items-center gap-1 rounded-lg border border-input bg-card pl-2 text-xs font-semibold text-muted-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
                   <span>크기</span>
-                  <select
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    max="100"
+                    step="1"
                     aria-label="글자 크기"
                     title="글자 크기"
-                    value={
-                      numericFontSize(editor?.getAttributes('fontSize').size) ??
-                      10
-                    }
-                    onChange={(event) =>
-                      editor
-                        ?.chain()
-                        .focus()
-                        .setMark('fontSize', {
-                          size: Number(event.target.value),
-                        })
-                        .run()
-                    }
-                    className="bg-transparent font-bold text-foreground outline-none"
-                  >
-                    {fontSizes.map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
+                    value={fontSizeInput}
+                    onKeyDown={(event) => {
+                      if (['e', 'E', '+', '-', '.'].includes(event.key)) {
+                        event.preventDefault();
+                      }
+                    }}
+                    onPaste={(event) => {
+                      if (!/^\d+$/.test(event.clipboardData.getData('text'))) {
+                        event.preventDefault();
+                      }
+                    }}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (!/^\d{0,3}$/.test(value)) return;
+                      setFontSizeInput(value);
+                      const size = numericFontSize(value);
+                      if (size) {
+                        editor?.commands.setMark('fontSize', { size });
+                      }
+                    }}
+                    onBlur={() => {
+                      const size = numericFontSize(fontSizeInput) ?? 10;
+                      setFontSizeInput(String(size));
+                      editor?.commands.setMark('fontSize', { size });
+                    }}
+                    className="h-full w-14 border-0 bg-transparent px-1 font-bold text-foreground outline-none"
+                  />
                 </label>
                 <ToolbarButton
                   label="굵게"

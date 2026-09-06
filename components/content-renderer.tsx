@@ -175,7 +175,7 @@ function safeFontSize(value: unknown) {
       : typeof value === 'string'
         ? Number.parseFloat(value)
         : Number.NaN;
-  return Number.isFinite(size) && size >= 8 && size <= 72 ? size : undefined;
+  return Number.isFinite(size) && size >= 1 && size <= 100 ? size : undefined;
 }
 
 function stringAttr(node: BlogNode, key: string) {
