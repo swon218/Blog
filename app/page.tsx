@@ -1,4 +1,4 @@
-import { chatGPTSignOutPath } from '@/app/chatgpt-auth';
+import { chatGPTSignInPath, chatGPTSignOutPath } from '@/app/chatgpt-auth';
 import { HomeCatalog } from '@/components/home-catalog';
 import { getPublicCatalog } from '@/lib/blog-data';
 import { getOptionalOwner } from '@/lib/owner-auth';
@@ -20,6 +20,7 @@ export default async function Home({
       posts={catalog.navigationPosts}
       initialSubjectId={catalog.selected?.id}
       isOwner={Boolean(owner)}
+      ownerSignInPath={chatGPTSignInPath('/admin')}
       ownerSignOutPath={owner ? chatGPTSignOutPath('/') : undefined}
       search={query.q}
     />

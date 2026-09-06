@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BookOpen, CalendarDays, Pencil } from 'lucide-react';
 import { notFound } from 'next/navigation';
-import { chatGPTSignOutPath } from '@/app/chatgpt-auth';
+import { chatGPTSignInPath, chatGPTSignOutPath } from '@/app/chatgpt-auth';
 import { BlogShell } from '@/components/blog-shell';
 import { ContentRenderer } from '@/components/content-renderer';
 import { PostAttachmentsDialog } from '@/components/post-attachments-dialog';
@@ -30,6 +30,7 @@ export default async function PostPage({
       activeSubjectId={post.subjectId}
       activePostId={post.id}
       isOwner={Boolean(owner)}
+      ownerSignInPath={chatGPTSignInPath('/admin')}
       ownerSignOutPath={owner ? chatGPTSignOutPath('/') : undefined}
     >
       <article className="px-5 py-10 sm:px-8 lg:px-14 lg:py-14 xl:px-20">

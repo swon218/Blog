@@ -26,6 +26,7 @@ type Props = {
   activeSubjectId?: string;
   activePostId?: string;
   isOwner: boolean;
+  ownerSignInPath: string;
   ownerSignOutPath?: string;
   search?: string;
   onSubjectSelect?: (subjectId: string) => void;
@@ -38,6 +39,7 @@ export function BlogShell({
   activeSubjectId,
   activePostId,
   isOwner,
+  ownerSignInPath,
   ownerSignOutPath,
   search = '',
   onSubjectSelect,
@@ -186,8 +188,9 @@ export function BlogShell({
             />
           </form>
           <ThemeToggle />
-          <Link
-            href={isOwner ? (ownerSignOutPath ?? '/') : '/admin'}
+          <a
+            href={isOwner ? (ownerSignOutPath ?? '/') : ownerSignInPath}
+            target="_top"
             className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold shadow-xs transition hover:bg-muted"
           >
             {isOwner ? (
@@ -198,7 +201,7 @@ export function BlogShell({
             <span className="hidden sm:inline">
               {isOwner ? '로그아웃' : '로그인'}
             </span>
-          </Link>
+          </a>
         </div>
       </header>
 

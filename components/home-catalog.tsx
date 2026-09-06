@@ -13,6 +13,7 @@ type Props = {
   posts: PostSummary[];
   initialSubjectId?: string;
   isOwner: boolean;
+  ownerSignInPath: string;
   ownerSignOutPath?: string;
   search?: string;
 };
@@ -22,6 +23,7 @@ export function HomeCatalog({
   posts,
   initialSubjectId,
   isOwner,
+  ownerSignInPath,
   ownerSignOutPath,
   search = '',
 }: Props) {
@@ -75,6 +77,7 @@ export function HomeCatalog({
       posts={posts}
       activeSubjectId={selected?.id}
       isOwner={isOwner}
+      ownerSignInPath={ownerSignInPath}
       ownerSignOutPath={ownerSignOutPath}
       search={search}
       onSubjectSelect={selectSubject}
