@@ -22,12 +22,11 @@ export function RecordingVaultDialog({
   const [open, setOpen] = useState(false);
   const [recordings, setRecordings] = useState<RecordingRecord[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
 
   async function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (!next || loaded || loading) return;
+    if (!next || loading) return;
     setLoading(true);
     setError('');
     try {
@@ -40,7 +39,6 @@ export function RecordingVaultDialog({
       if (!response.ok)
         throw new Error(payload.error || '녹음을 불러오지 못했습니다.');
       setRecordings(payload.recordings ?? []);
-      setLoaded(true);
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -59,12 +57,13 @@ export function RecordingVaultDialog({
         size={compact ? 'default' : 'lg'}
         onClick={() => void handleOpenChange(true)}
       >
-        <Headphones className="size-4" /> {compact ? '녹음' : '녹음 보관함'}
+        <Headphones className="size-4" />{' '}
+        {compact ? '녹음 파일' : '녹음 보관함'}
       </Button>
       <DialogContent className="max-h-[80vh] overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {postId ? '이 게시물의 녹음' : '수업 녹음 보관함'}
+            {postId ? '이 게시물의 녹음 파일' : '수업 녹음 보관함'}
           </DialogTitle>
           <DialogDescription>
             녹음 시각별로 재생하거나 원본 파일을 저장할 수 있습니다.

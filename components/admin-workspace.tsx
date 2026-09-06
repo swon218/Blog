@@ -14,6 +14,7 @@ import {
   Braces,
   Code2,
   Eye,
+  FileAudio,
   FilePlus2,
   GripVertical,
   Heading2,
@@ -167,7 +168,6 @@ export function AdminWorkspace({
   >('idle');
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const requestedKindRef = useRef<'image' | 'video'>('image');
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -348,7 +348,12 @@ export function AdminWorkspace({
     if (!response.ok)
       throw new Error(result.error ?? '파일 업로드에 실패했습니다.');
     insertMedia(result);
-    setMessage(result.name + ' 파일을 본문에 삽입했습니다.');
+    setMessage(
+      result.kind === 'audio'
+        ? result.name +
+            ' 녹음 파일을 본문에 삽입했습니다. 게시글을 저장하면 녹음 보관함에도 표시됩니다.'
+        : result.name + ' 파일을 본문에 삽입했습니다.',
+    );
   }
 
   function insertMedia(media: UploadedMedia) {
@@ -381,10 +386,14 @@ export function AdminWorkspace({
       .run();
   }
 
-  function chooseFile(kind: 'image' | 'video') {
-    requestedKindRef.current = kind;
+  function chooseFile(kind: 'image' | 'video' | 'audio') {
     if (fileInputRef.current) {
-      fileInputRef.current.accept = kind === 'image' ? 'image/*' : 'video/*';
+      fileInputRef.current.accept =
+        kind === 'image'
+          ? 'image/*'
+          : kind === 'video'
+            ? 'video/*'
+            : 'audio/*';
       fileInputRef.current.click();
     }
   }
@@ -394,6 +403,7 @@ export function AdminWorkspace({
       setMessage('이 브라우저는 녹음 기능을 지원하지 않습니다.');
       return;
     }
+    setMessage('마이크 연결과 권한을 확인하는 중입니다…');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const preferred = [
@@ -446,8 +456,15 @@ export function AdminWorkspace({
         () => setRecordingSeconds((seconds) => seconds + 1),
         1000,
       );
-    } catch {
-      setMessage('마이크 권한을 허용해야 녹음할 수 있습니다.');
+    } catch (error) {
+      const name = error instanceof DOMException ? error.name : '';
+      if (name === 'NotFoundError') {
+        setMessage('사용 가능한 마이크를 찾을 수 없습니다. PC의 마이크 연결을 확인해 주세요.');
+      } else if (name === 'NotReadableError') {
+        setMessage('마이크를 사용할 수 없습니다. 다른 프로그램이 마이크를 사용 중인지 확인해 주세요.');
+      } else {
+        setMessage('브라우저에서 마이크 권한을 허용해야 녹음할 수 있습니다.');
+      }
     }
   }
 
@@ -812,6 +829,12 @@ export function AdminWorkspace({
                 >
                   <Video />
                 </ToolbarButton>
+                <ToolbarButton
+                  label="녹음 파일 첨부"
+                  onClick={() => chooseFile('audio')}
+                >
+                  <FileAudio />
+                </ToolbarButton>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -842,7 +865,7 @@ export function AdminWorkspace({
                       className="text-red-700"
                     >
                       <Mic2 />
-                      녹음
+                      마이크 녹음
                     </Button>
                   ) : (
                     <>
