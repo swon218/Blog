@@ -36,6 +36,7 @@ import {
   Save,
   Square,
   Trash2,
+  UploadCloud,
   Video,
   X,
 } from 'lucide-react';
@@ -394,6 +395,7 @@ export function AdminWorkspace({
   >('idle');
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [fontSizeInput, setFontSizeInput] = useState('10');
+  const [isDraggingMedia, setIsDraggingMedia] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -588,6 +590,46 @@ export function AdminWorkspace({
             ' 녹음 파일을 본문에 삽입했습니다. 게시글을 저장하면 녹음 보관함에도 표시됩니다.'
         : result.name + ' 파일을 본문에 삽입했습니다.',
     );
+  }
+
+  async function dropMediaFiles(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingMedia(false);
+
+    const files = Array.from(event.dataTransfer.files);
+    const mediaFiles = files.filter((file) =>
+      /^(image|video|audio)\//.test(file.type),
+    );
+    if (!mediaFiles.length) {
+      setMessage('이미지, 동영상 또는 녹음 파일만 끌어다 놓을 수 있습니다.');
+      return;
+    }
+
+    const dropPosition = editor?.view.posAtCoords({
+      left: event.clientX,
+      top: event.clientY,
+    });
+    if (dropPosition) {
+      editor?.commands.setTextSelection(dropPosition.pos);
+    }
+
+    try {
+      for (const file of mediaFiles) {
+        await uploadFile(file);
+      }
+      if (files.length !== mediaFiles.length) {
+        setMessage(
+          `${mediaFiles.length}개 미디어 파일을 삽입했습니다. 지원하지 않는 파일은 제외했습니다.`,
+        );
+      } else if (mediaFiles.length > 1) {
+        setMessage(`${mediaFiles.length}개 미디어 파일을 본문에 삽입했습니다.`);
+      }
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : '파일 업로드에 실패했습니다.',
+      );
+    }
   }
 
   function insertMedia(media: UploadedMedia) {
@@ -1173,7 +1215,46 @@ export function AdminWorkspace({
                   )}
                 </div>
               </div>
-              <EditorContent editor={editor} />
+              <div
+                className="relative"
+                onDragEnterCapture={(event) => {
+                  if (event.dataTransfer.types.includes('Files')) {
+                    event.preventDefault();
+                    setIsDraggingMedia(true);
+                  }
+                }}
+                onDragOverCapture={(event) => {
+                  if (event.dataTransfer.types.includes('Files')) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'copy';
+                    setIsDraggingMedia(true);
+                  }
+                }}
+                onDragLeaveCapture={(event) => {
+                  const nextTarget = event.relatedTarget;
+                  if (
+                    nextTarget instanceof globalThis.Node &&
+                    event.currentTarget.contains(nextTarget)
+                  ) {
+                    return;
+                  }
+                  setIsDraggingMedia(false);
+                }}
+                onDropCapture={(event) => void dropMediaFiles(event)}
+              >
+                <EditorContent editor={editor} />
+                {isDraggingMedia ? (
+                  <div className="pointer-events-none absolute inset-2 z-30 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-background/90 text-primary shadow-lg backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-2 px-6 py-8 text-center">
+                      <UploadCloud className="size-8" />
+                      <strong className="text-sm">이 위치에 놓아 첨부</strong>
+                      <span className="text-xs text-muted-foreground">
+                        이미지, 동영상, 녹음 파일을 바로 삽입합니다.
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
