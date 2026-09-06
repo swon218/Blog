@@ -195,6 +195,17 @@ body {
     @apply mx-auto max-h-[680px] max-w-full rounded-2xl border border-border object-contain shadow-sm;
   }
 
+  .rendered-resizable-media {
+    max-width: 100%;
+  }
+
+  .rendered-resizable-media > img,
+  .rendered-resizable-media > video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
   .study-content figcaption {
     @apply mt-2 text-center text-xs text-muted-foreground;
   }
@@ -216,6 +227,108 @@ body {
   .editor-media-node,
   .media-attachment {
     @apply my-6 rounded-2xl border border-border bg-muted/40 p-4;
+  }
+
+  .resizable-media-node {
+    @apply relative my-6 max-w-full rounded-2xl border border-border bg-muted/40;
+    min-height: 64px;
+  }
+
+  .resizable-media-node.is-selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 30%, transparent);
+  }
+
+  .resizable-media-node__content {
+    width: 100%;
+    height: 100%;
+    min-height: inherit;
+    overflow: hidden;
+    border-radius: inherit;
+  }
+
+  .resizable-media-node__content > img,
+  .resizable-media-node__content > video {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border: 0;
+    border-radius: inherit;
+    object-fit: contain;
+    box-shadow: none;
+  }
+
+  .resizable-media-node__audio {
+    @apply flex h-full min-h-16 flex-col justify-center gap-2 p-4;
+  }
+
+  .resizable-media-node__audio span {
+    @apply truncate text-xs font-bold text-muted-foreground;
+  }
+
+  .resizable-media-node__audio audio {
+    width: 100%;
+  }
+
+  .resizable-media-node__delete {
+    @apply absolute -right-3 -top-3 z-20 flex size-8 items-center justify-center rounded-full border border-red-300 bg-red-600 text-white shadow-md transition hover:bg-red-700;
+  }
+
+  .resizable-media-node__delete svg {
+    @apply size-4;
+  }
+
+  .resizable-media-node__handle {
+    @apply absolute z-10 size-3 rounded-full border-2 border-background bg-primary shadow-sm;
+    touch-action: none;
+  }
+
+  .resizable-media-node__handle.is-nw {
+    left: -6px;
+    top: -6px;
+    cursor: nwse-resize;
+  }
+
+  .resizable-media-node__handle.is-n {
+    left: calc(50% - 6px);
+    top: -6px;
+    cursor: ns-resize;
+  }
+
+  .resizable-media-node__handle.is-ne {
+    right: -6px;
+    top: -6px;
+    cursor: nesw-resize;
+  }
+
+  .resizable-media-node__handle.is-e {
+    right: -6px;
+    top: calc(50% - 6px);
+    cursor: ew-resize;
+  }
+
+  .resizable-media-node__handle.is-se {
+    bottom: -6px;
+    right: -6px;
+    cursor: nwse-resize;
+  }
+
+  .resizable-media-node__handle.is-s {
+    bottom: -6px;
+    left: calc(50% - 6px);
+    cursor: ns-resize;
+  }
+
+  .resizable-media-node__handle.is-sw {
+    bottom: -6px;
+    left: -6px;
+    cursor: nesw-resize;
+  }
+
+  .resizable-media-node__handle.is-w {
+    left: -6px;
+    top: calc(50% - 6px);
+    cursor: ew-resize;
   }
 
   .editor-media-node audio,
