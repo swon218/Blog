@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Node, mergeAttributes } from '@tiptap/core';
+import { Mark, Node, mergeAttributes } from '@tiptap/core';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import StarterKit from '@tiptap/starter-kit';
@@ -89,6 +89,43 @@ const resizeDirections: ResizeDirection[] = [
   'sw',
   'w',
 ];
+
+const fontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32];
+
+const FontSizeMark = Mark.create({
+  name: 'fontSize',
+  addAttributes() {
+    return {
+      size: {
+        default: null,
+        parseHTML: (element) => {
+          const value = Number.parseFloat(element.style.fontSize);
+          return Number.isFinite(value) ? value : null;
+        },
+        renderHTML: (attributes) => {
+          const size = numericFontSize(attributes.size);
+          return size ? { style: `font-size: ${size}pt` } : {};
+        },
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: 'span[style*="font-size"]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes), 0];
+  },
+});
+
+function numericFontSize(value: unknown) {
+  const size =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number.parseFloat(value)
+        : Number.NaN;
+  return Number.isFinite(size) && size >= 8 && size <= 72 ? size : undefined;
+}
 
 function ResizableMediaNodeView({
   node,
@@ -367,6 +404,7 @@ export function AdminWorkspace({
     immediatelyRender: false,
     extensions: [
       StarterKit,
+      FontSizeMark,
       MediaImage,
       MediaNode,
       Placeholder.configure({
@@ -957,6 +995,33 @@ export function AdminWorkspace({
 
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
               <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted/45 p-2">
+                <label className="mr-1 inline-flex h-8 items-center gap-1 rounded-lg border border-input bg-card px-2 text-xs font-semibold text-muted-foreground">
+                  <span>크기</span>
+                  <select
+                    aria-label="글자 크기"
+                    title="글자 크기"
+                    value={
+                      numericFontSize(editor?.getAttributes('fontSize').size) ??
+                      10
+                    }
+                    onChange={(event) =>
+                      editor
+                        ?.chain()
+                        .focus()
+                        .setMark('fontSize', {
+                          size: Number(event.target.value),
+                        })
+                        .run()
+                    }
+                    className="bg-transparent font-bold text-foreground outline-none"
+                  >
+                    {fontSizes.map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <ToolbarButton
                   label="굵게"
                   active={editor?.isActive('bold')}

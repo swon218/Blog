@@ -152,6 +152,10 @@ function applyMarks(
     if (mark.type === 'italic') content = <em>{content}</em>;
     if (mark.type === 'strike') content = <s>{content}</s>;
     if (mark.type === 'code') content = <code>{content}</code>;
+    if (mark.type === 'fontSize') {
+      const size = safeFontSize(mark.attrs?.size);
+      if (size) content = <span style={{ fontSize: `${size}pt` }}>{content}</span>;
+    }
     if (mark.type === 'link') {
       const href = typeof mark.attrs?.href === 'string' ? mark.attrs.href : '#';
       content = (
@@ -162,6 +166,16 @@ function applyMarks(
     }
   }
   return <span key={key}>{content}</span>;
+}
+
+function safeFontSize(value: unknown) {
+  const size =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number.parseFloat(value)
+        : Number.NaN;
+  return Number.isFinite(size) && size >= 8 && size <= 72 ? size : undefined;
 }
 
 function stringAttr(node: BlogNode, key: string) {
