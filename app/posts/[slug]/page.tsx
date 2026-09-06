@@ -18,7 +18,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPublicPost(decodeURIComponent(slug));
-  if (!post) return { title: '게시글을 찾을 수 없습니다' };
+  if (!post) return { title: 'Blog' };
   return { title: post.title + ' | Blog', description: post.excerpt };
 }
 
