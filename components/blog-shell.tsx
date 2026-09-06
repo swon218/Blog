@@ -51,6 +51,9 @@ export function BlogShell({
     () => new Set(activePostId && activeSubjectId ? [activeSubjectId] : []),
   );
   const [subjectName, setSubjectName] = useState('');
+  const [subjectQuery, setSubjectQuery] = useState(search);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [draggedSubjectId, setDraggedSubjectId] = useState<string | null>(null);
@@ -72,6 +75,25 @@ export function BlogShell({
     if (rightIndex === undefined) return -1;
     return leftIndex - rightIndex;
   });
+  const normalizedSubjectQuery = subjectQuery.trim().toLocaleLowerCase('ko-KR');
+  const matchingSubjects = normalizedSubjectQuery
+    ? orderedSubjects.filter((subject) =>
+        subject.name
+          .toLocaleLowerCase('ko-KR')
+          .startsWith(normalizedSubjectQuery),
+      )
+    : [];
+
+  function chooseSubject(subject: SubjectRecord) {
+    setSubjectQuery(subject.name);
+    setSuggestionsOpen(false);
+    setSuggestionIndex(0);
+    if (onSubjectSelect) {
+      onSubjectSelect(subject.id);
+      return;
+    }
+    router.push('/?subject=' + encodeURIComponent(subject.slug));
+  }
 
   function toggleSubject(id: string) {
     setExpanded((current) => {
@@ -175,17 +197,89 @@ export function BlogShell({
             </strong>
           </Link>
           <form
-            className="ml-auto hidden w-full max-w-sm items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm shadow-xs md:flex"
-            action="/"
+            className="relative ml-auto hidden w-full max-w-sm items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm shadow-xs md:flex"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const subject = matchingSubjects[suggestionIndex];
+              if (subject) chooseSubject(subject);
+            }}
           >
             <Search className="size-4 text-muted-foreground" />
             <input
-              name="q"
-              defaultValue={search}
-              aria-label="검색"
+              value={subjectQuery}
+              onChange={(event) => {
+                setSubjectQuery(event.target.value);
+                setSuggestionIndex(0);
+                setSuggestionsOpen(true);
+              }}
+              onFocus={() => setSuggestionsOpen(true)}
+              onBlur={() => {
+                window.setTimeout(() => setSuggestionsOpen(false), 0);
+              }}
+              onKeyDown={(event) => {
+                if (!matchingSubjects.length) return;
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  setSuggestionsOpen(true);
+                  setSuggestionIndex((index) =>
+                    Math.min(index + 1, matchingSubjects.length - 1),
+                  );
+                } else if (event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  setSuggestionsOpen(true);
+                  setSuggestionIndex((index) => Math.max(index - 1, 0));
+                } else if (event.key === 'Enter') {
+                  event.preventDefault();
+                  chooseSubject(matchingSubjects[suggestionIndex]);
+                } else if (event.key === 'Escape') {
+                  setSuggestionsOpen(false);
+                }
+              }}
+              role="combobox"
+              aria-label="태그 검색"
+              aria-autocomplete="list"
+              aria-controls="subject-search-suggestions"
+              aria-expanded={suggestionsOpen && matchingSubjects.length > 0}
               placeholder="검색"
               className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
             />
+            {suggestionsOpen && normalizedSubjectQuery && (
+              <div
+                id="subject-search-suggestions"
+                aria-label="검색된 태그"
+                className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-lg"
+              >
+                {matchingSubjects.map((subject, index) => (
+                  <button
+                    key={subject.id}
+                    type="button"
+                    aria-current={index === suggestionIndex}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => chooseSubject(subject)}
+                    onMouseEnter={() => setSuggestionIndex(index)}
+                    className={
+                      'flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition ' +
+                      (index === suggestionIndex
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted')
+                    }
+                  >
+                    <BookOpen className="size-4 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate font-semibold">
+                      {subject.name}
+                    </span>
+                    <span className="text-xs opacity-60">
+                      {subject.postCount}
+                    </span>
+                  </button>
+                ))}
+                {!matchingSubjects.length && (
+                  <p className="px-3 py-3 text-center text-xs text-muted-foreground">
+                    일치하는 태그가 없습니다.
+                  </p>
+                )}
+              </div>
+            )}
           </form>
           <ThemeToggle />
           <a

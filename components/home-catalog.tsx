@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowRight, BookOpen, Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BlogShell } from '@/components/blog-shell';
 import { SubjectActions } from '@/components/subject-actions';
 import { VisibilityControl } from '@/components/visibility-controls';
@@ -49,17 +49,8 @@ export function HomeCatalog({
     : (initialSubjectId ?? subjects[0]?.id);
   const selected =
     subjects.find((subject) => subject.id === effectiveSubjectId) ?? null;
-  const normalizedSearch = search.trim().toLowerCase();
-  const visiblePosts = useMemo(
-    () =>
-      posts.filter(
-        (post) =>
-          post.subjectId === effectiveSubjectId &&
-          (!normalizedSearch ||
-            post.title.toLowerCase().includes(normalizedSearch) ||
-            post.excerpt.toLowerCase().includes(normalizedSearch)),
-      ),
-    [effectiveSubjectId, normalizedSearch, posts],
+  const visiblePosts = posts.filter(
+    (post) => post.subjectId === effectiveSubjectId,
   );
 
   function selectSubject(subjectId: string) {
@@ -88,10 +79,6 @@ export function HomeCatalog({
             <>
               <div className="mb-9 flex flex-col justify-between gap-5 border-b border-border pb-8 sm:flex-row sm:items-end">
                 <div>
-                  <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-sky-400">
-                    <span className="size-1.5 rounded-full bg-emerald-500" />{' '}
-                    공부 기록
-                  </div>
                   <h1 className="text-3xl font-bold tracking-[-0.04em] sm:text-4xl">
                     {selected.name}
                   </h1>
@@ -163,9 +150,7 @@ export function HomeCatalog({
                   <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
                     <Search className="mx-auto mb-3 size-6 text-muted-foreground" />
                     <p className="font-bold">
-                      {normalizedSearch
-                        ? '일치하는 공부 기록이 없습니다.'
-                        : '아직 작성된 공부 기록이 없습니다.'}
+                      아직 작성된 공부 기록이 없습니다.
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {isOwner
