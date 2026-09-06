@@ -10,17 +10,7 @@ import { getPublicCatalog, getPublicPost } from '@/lib/blog-data';
 import { getOptionalOwner } from '@/lib/owner-auth';
 
 export const dynamic = 'force-dynamic';
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  const { slug } = await params;
-  const post = await getPublicPost(decodeURIComponent(slug));
-  if (!post) return { title: 'Blog' };
-  return { title: post.title + ' | Blog', description: post.excerpt };
-}
+export const metadata: Metadata = { title: 'Blog' };
 
 export default async function PostPage({
   params,

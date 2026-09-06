@@ -1,5 +1,4 @@
 import { env } from 'cloudflare:workers';
-import { ensureSchema } from '@/db/runtime';
 
 export type PostStatus = 'draft' | 'private' | 'public';
 export type SubjectVisibility = 'private' | 'public';
@@ -40,6 +39,8 @@ export type PostRecord = {
   updatedAt: string;
   publishedAt: string | null;
 };
+
+export type PostSummary = Omit<PostRecord, 'content'>;
 
 export type RecordingRecord = {
   id: string;
@@ -83,6 +84,8 @@ type PostRow = {
   publishedAt: string | null;
 };
 
+type PostSummaryRow = Omit<PostRow, 'contentJson'>;
+
 const postSelect = [
   'p.id AS id',
   'p.subject_id AS subjectId',
@@ -99,11 +102,53 @@ const postSelect = [
   'p.published_at AS publishedAt',
 ].join(', ');
 
+const postSummarySelect = [
+  'p.id AS id',
+  'p.subject_id AS subjectId',
+  's.name AS subjectName',
+  's.slug AS subjectSlug',
+  'p.title AS title',
+  'p.slug AS slug',
+  'p.excerpt AS excerpt',
+  'p.status AS status',
+  'p.sort_order AS sortOrder',
+  'p.created_at AS createdAt',
+  'p.updated_at AS updatedAt',
+  'p.published_at AS publishedAt',
+].join(', ');
+
+type CatalogBase = {
+  subjects: SubjectRecord[];
+  navigationPosts: PostSummary[];
+};
+
+const PUBLIC_CATALOG_TTL_MS = 30_000;
+let publicCatalogCache:
+  | { expiresAt: number; value: Promise<CatalogBase> }
+  | undefined;
+
 export async function getPublicCatalog(
   subjectSlug?: string,
   includePrivate = false,
 ) {
-  await ensureSchema();
+  const base = includePrivate
+    ? await loadCatalog(true)
+    : await getCachedPublicCatalog();
+  const selected =
+    base.subjects.find((subject) => subject.slug === subjectSlug) ??
+    base.subjects[0] ??
+    null;
+
+  return {
+    ...base,
+    selected,
+    posts: selected
+      ? base.navigationPosts.filter((post) => post.subjectId === selected.id)
+      : [],
+  };
+}
+
+async function loadCatalog(includePrivate: boolean): Promise<CatalogBase> {
   const postJoin = includePrivate
     ? 'LEFT JOIN posts p ON p.subject_id = s.id'
     : "LEFT JOIN posts p ON p.subject_id = s.id AND p.status = 'public'";
@@ -124,42 +169,43 @@ export async function getPublicCatalog(
   ).all<SubjectRow>();
 
   const subjects = subjectRows.results.map(normalizeSubject);
-  const selected =
-    subjects.find((subject) => subject.slug === subjectSlug) ??
-    subjects[0] ??
-    null;
-
   const visibilityClause = includePrivate ? '' : "WHERE p.status = 'public'";
   const navigationRows = await env.DB.prepare(
     [
       'SELECT',
-      postSelect,
+      postSummarySelect,
       'FROM posts p JOIN subjects s ON s.id = p.subject_id',
       visibilityClause,
       'ORDER BY s.sort_order, p.sort_order, p.created_at',
     ].join(' '),
-  ).all<PostRow>();
-  const navigationPosts = navigationRows.results.map(normalizePost);
+  ).all<PostSummaryRow>();
+  const navigationPosts = navigationRows.results.map(normalizePostSummary);
 
-  if (!selected) {
-    return {
-      subjects,
-      selected: null,
-      posts: [] as PostRecord[],
-      navigationPosts,
-    };
+  return { subjects, navigationPosts };
+}
+
+async function getCachedPublicCatalog() {
+  const now = Date.now();
+  if (publicCatalogCache && publicCatalogCache.expiresAt > now) {
+    return publicCatalogCache.value;
   }
 
-  return {
-    subjects,
-    selected,
-    posts: navigationPosts.filter((post) => post.subjectId === selected.id),
-    navigationPosts,
+  const value = loadCatalog(false).catch((error) => {
+    publicCatalogCache = undefined;
+    throw error;
+  });
+  publicCatalogCache = {
+    expiresAt: now + PUBLIC_CATALOG_TTL_MS,
+    value,
   };
+  return value;
+}
+
+export function invalidatePublicCatalogCache() {
+  publicCatalogCache = undefined;
 }
 
 export async function getPublicPost(slug: string, includePrivate = false) {
-  await ensureSchema();
   const visibilityClause = includePrivate ? '' : "AND p.status = 'public'";
   const row = await env.DB.prepare(
     [
@@ -177,7 +223,6 @@ export async function getPublicPost(slug: string, includePrivate = false) {
 }
 
 export async function getRecordings(postId?: string) {
-  await ensureSchema();
   const where = postId
     ? "WHERE m.kind = 'audio' AND m.post_id = ?"
     : "WHERE m.kind = 'audio'";
@@ -205,7 +250,6 @@ export async function getRecordings(postId?: string) {
 }
 
 export async function getAdminSnapshot() {
-  await ensureSchema();
   const [subjectRows, postRows] = await Promise.all([
     env.DB.prepare(
       [
@@ -233,7 +277,6 @@ export async function getAdminSnapshot() {
 }
 
 export async function createSubject(name: string) {
-  await ensureSchema();
   const cleanName = name.trim();
   if (!cleanName) throw new Error('과목 이름을 입력해 주세요.');
   const id = crypto.randomUUID();
@@ -250,7 +293,6 @@ export async function createSubject(name: string) {
 }
 
 export async function renameSubject(id: string, name: string) {
-  await ensureSchema();
   const cleanName = name.trim();
   if (!cleanName) throw new Error('과목 이름을 입력해 주세요.');
   await env.DB.prepare(
@@ -265,7 +307,6 @@ export async function updateSubject(
   name: string,
   description: string,
 ) {
-  await ensureSchema();
   const cleanName = name.trim();
   if (!cleanName) throw new Error('과목 이름을 입력해 주세요.');
   await env.DB.prepare(
@@ -279,7 +320,6 @@ export async function setSubjectVisibility(
   id: string,
   visibility: SubjectVisibility,
 ) {
-  await ensureSchema();
   assertVisibility(visibility);
   const now = new Date().toISOString();
   await env.DB.batch([
@@ -301,7 +341,6 @@ export async function setPostVisibility(
   id: string,
   visibility: SubjectVisibility,
 ) {
-  await ensureSchema();
   assertVisibility(visibility);
   const now = new Date().toISOString();
   await env.DB.batch([
@@ -315,7 +354,6 @@ export async function setPostVisibility(
 }
 
 export async function reorderSubjects(ids: string[]) {
-  await ensureSchema();
   if (!ids.length) return;
   const now = new Date().toISOString();
   await env.DB.batch(
@@ -328,7 +366,6 @@ export async function reorderSubjects(ids: string[]) {
 }
 
 export async function deleteSubject(id: string) {
-  await ensureSchema();
   const keys = await env.DB.prepare(
     'SELECT m.object_key AS objectKey FROM media m JOIN posts p ON p.id = m.post_id WHERE p.subject_id = ?',
   )
@@ -350,7 +387,6 @@ type SavePostInput = {
 };
 
 export async function savePost(input: SavePostInput) {
-  await ensureSchema();
   const title = input.title.trim();
   if (!title) throw new Error('게시글 제목을 입력해 주세요.');
   if (!['draft', 'private', 'public'].includes(input.status)) {
@@ -415,7 +451,6 @@ export async function savePost(input: SavePostInput) {
 }
 
 export async function reorderPosts(subjectId: string, ids: string[]) {
-  await ensureSchema();
   if (!ids.length) return;
   const now = new Date().toISOString();
   await env.DB.batch(
@@ -428,7 +463,6 @@ export async function reorderPosts(subjectId: string, ids: string[]) {
 }
 
 export async function deletePost(id: string) {
-  await ensureSchema();
   const keys = await env.DB.prepare(
     'SELECT object_key AS objectKey FROM media WHERE post_id = ?',
   )
@@ -520,5 +554,12 @@ function normalizePost(row: PostRow): PostRecord {
     ...row,
     sortOrder: Number(row.sortOrder),
     content,
+  };
+}
+
+function normalizePostSummary(row: PostSummaryRow): PostSummary {
+  return {
+    ...row,
+    sortOrder: Number(row.sortOrder),
   };
 }

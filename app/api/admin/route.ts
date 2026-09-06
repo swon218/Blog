@@ -4,6 +4,7 @@ import {
   deletePost,
   deleteSubject,
   getAdminSnapshot,
+  invalidatePublicCatalogCache,
   renameSubject,
   reorderPosts,
   reorderSubjects,
@@ -111,6 +112,8 @@ export async function POST(request: Request) {
           { status: 400 },
         );
     }
+
+    invalidatePublicCatalogCache();
 
     return NextResponse.json({
       ...(await getAdminSnapshot()),

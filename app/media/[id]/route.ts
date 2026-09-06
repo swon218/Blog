@@ -1,5 +1,4 @@
 import { env } from 'cloudflare:workers';
-import { ensureSchema } from '@/db/runtime';
 import { getOptionalOwner } from '@/lib/owner-auth';
 
 type MediaRow = {
@@ -15,7 +14,6 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  await ensureSchema();
   const { id } = await params;
   const media = await env.DB.prepare(
     [

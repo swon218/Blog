@@ -15,19 +15,20 @@ import {
   Search,
 } from 'lucide-react';
 import { type ReactNode, useRef, useState } from 'react';
-import type { PostRecord, SubjectRecord } from '@/lib/blog-data';
+import type { PostSummary, SubjectRecord } from '@/lib/blog-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 type Props = {
   subjects: SubjectRecord[];
-  posts: PostRecord[];
+  posts: PostSummary[];
   activeSubjectId?: string;
   activePostId?: string;
   isOwner: boolean;
   ownerSignOutPath?: string;
   search?: string;
+  onSubjectSelect?: (subjectId: string) => void;
   children: ReactNode;
 };
 
@@ -39,6 +40,7 @@ export function BlogShell({
   isOwner,
   ownerSignOutPath,
   search = '',
+  onSubjectSelect,
   children,
 }: Props) {
   const router = useRouter();
@@ -294,25 +296,24 @@ export function BlogShell({
                           }
                         />
                       )}
-                      <Link
-                        draggable={false}
-                        href={'/?subject=' + encodeURIComponent(subject.slug)}
-                        className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-3 text-left"
-                      >
-                        <BookOpen
-                          className={
-                            active
-                              ? 'size-4 text-amber-300'
-                              : 'size-4 text-muted-foreground'
-                          }
-                        />
-                        <span className="truncate text-sm font-semibold">
-                          {subject.name}
-                        </span>
-                        <span className="ml-auto text-xs opacity-60">
-                          {subject.postCount}
-                        </span>
-                      </Link>
+                      {onSubjectSelect ? (
+                        <button
+                          type="button"
+                          draggable={false}
+                          onClick={() => onSubjectSelect(subject.id)}
+                          className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-3 text-left"
+                        >
+                          <SubjectLabel subject={subject} active={active} />
+                        </button>
+                      ) : (
+                        <Link
+                          draggable={false}
+                          href={'/?subject=' + encodeURIComponent(subject.slug)}
+                          className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-3 text-left"
+                        >
+                          <SubjectLabel subject={subject} active={active} />
+                        </Link>
+                      )}
                       <button
                         type="button"
                         onClick={() => toggleSubject(subject.id)}
@@ -410,5 +411,27 @@ export function BlogShell({
         <div className="min-w-0 flex-1">{children}</div>
       </div>
     </main>
+  );
+}
+
+function SubjectLabel({
+  subject,
+  active,
+}: {
+  subject: SubjectRecord;
+  active: boolean;
+}) {
+  return (
+    <>
+      <BookOpen
+        className={
+          active
+            ? 'size-4 text-amber-300'
+            : 'size-4 text-muted-foreground'
+        }
+      />
+      <span className="truncate text-sm font-semibold">{subject.name}</span>
+      <span className="ml-auto text-xs opacity-60">{subject.postCount}</span>
+    </>
   );
 }

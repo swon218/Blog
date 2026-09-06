@@ -1,6 +1,5 @@
 import { env } from 'cloudflare:workers';
 import { NextResponse } from 'next/server';
-import { ensureSchema } from '@/db/runtime';
 import { OwnerAccessError, requireApiOwner } from '@/lib/owner-auth';
 
 const limits = {
@@ -12,7 +11,6 @@ const limits = {
 export async function POST(request: Request) {
   try {
     await requireApiOwner();
-    await ensureSchema();
     const form = await request.formData();
     const file = form.get('file');
     if (!(file instanceof File)) {
