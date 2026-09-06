@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { RecordingVaultDialog } from '@/components/recording-vault-dialog';
 import { VisibilityControl } from '@/components/visibility-controls';
 
 export function SubjectActions({ subject }: { subject: SubjectRecord }) {
@@ -111,7 +110,6 @@ export function SubjectActions({ subject }: { subject: SubjectRecord }) {
         <Button variant="outline" size="lg" onClick={() => setOpen(true)}>
           <Pencil className="size-4" /> 과목 수정
         </Button>
-        <RecordingVaultDialog />
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>

@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { chatGPTSignOutPath } from '@/app/chatgpt-auth';
 import { BlogShell } from '@/components/blog-shell';
 import { ContentRenderer } from '@/components/content-renderer';
-import { RecordingVaultDialog } from '@/components/recording-vault-dialog';
+import { PostAttachmentsDialog } from '@/components/post-attachments-dialog';
 import { getPublicCatalog, getPublicPost } from '@/lib/blog-data';
 import { getOptionalOwner } from '@/lib/owner-auth';
 
@@ -67,7 +67,10 @@ export default async function PostPage({
                   >
                     <Pencil className="size-3.5" /> 게시물 수정
                   </Link>
-                  <RecordingVaultDialog postId={post.id} compact />
+                  <PostAttachmentsDialog
+                    document={post.content}
+                    canAccessPrivate
+                  />
                 </div>
               )}
             </div>
