@@ -31,6 +31,8 @@ import {
   LockKeyhole,
   Mic2,
   Pause,
+  PanelRightClose,
+  PanelRightOpen,
   Play,
   Plus,
   Save,
@@ -396,6 +398,7 @@ export function AdminWorkspace({
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [fontSizeInput, setFontSizeInput] = useState('10');
   const [isDraggingMedia, setIsDraggingMedia] = useState(false);
+  const [postOrderOpen, setPostOrderOpen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -665,11 +668,7 @@ export function AdminWorkspace({
   function chooseFile(kind: 'image' | 'video' | 'audio') {
     if (fileInputRef.current) {
       fileInputRef.current.accept =
-        kind === 'image'
-          ? 'image/*'
-          : kind === 'video'
-            ? 'video/*'
-            : 'audio/*';
+        kind === 'image' ? 'image/*' : kind === 'video' ? 'video/*' : 'audio/*';
       fileInputRef.current.click();
     }
   }
@@ -735,9 +734,13 @@ export function AdminWorkspace({
     } catch (error) {
       const name = error instanceof DOMException ? error.name : '';
       if (name === 'NotFoundError') {
-        setMessage('사용 가능한 마이크를 찾을 수 없습니다. PC의 마이크 연결을 확인해 주세요.');
+        setMessage(
+          '사용 가능한 마이크를 찾을 수 없습니다. PC의 마이크 연결을 확인해 주세요.',
+        );
       } else if (name === 'NotReadableError') {
-        setMessage('마이크를 사용할 수 없습니다. 다른 프로그램이 마이크를 사용 중인지 확인해 주세요.');
+        setMessage(
+          '마이크를 사용할 수 없습니다. 다른 프로그램이 마이크를 사용 중인지 확인해 주세요.',
+        );
       } else {
         setMessage('브라우저에서 마이크 권한을 허용해야 녹음할 수 있습니다.');
       }
@@ -796,13 +799,33 @@ export function AdminWorkspace({
         </Link>
       </header>
 
-      <div className="grid min-h-[calc(100vh-4rem)] grid-cols-1 xl:grid-cols-[220px_300px_minmax(0,1fr)]">
+      <div
+        className={
+          'grid min-h-[calc(100vh-4rem)] grid-cols-1 ' +
+          (postOrderOpen
+            ? 'xl:grid-cols-[220px_300px_minmax(0,1fr)]'
+            : 'xl:grid-cols-[220px_minmax(0,1fr)]')
+        }
+      >
         <aside className="border-b border-border bg-sidebar p-4 xl:border-r xl:border-b-0">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
               과목 목차
             </p>
-            <Badge variant="outline">{snapshot.subjects.length}</Badge>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label={
+                postOrderOpen ? '게시글 순서 접기' : '게시글 순서 펼치기'
+              }
+              aria-controls="admin-post-order-panel"
+              aria-expanded={postOrderOpen}
+              title={postOrderOpen ? '게시글 순서 접기' : '게시글 순서 펼치기'}
+              onClick={() => setPostOrderOpen((current) => !current)}
+            >
+              {postOrderOpen ? <PanelRightClose /> : <PanelRightOpen />}
+            </Button>
           </div>
           <div className="grid gap-1.5 sm:grid-cols-3 xl:grid-cols-1">
             {snapshot.subjects.map((subject, index) => (
@@ -886,95 +909,101 @@ export function AdminWorkspace({
           </div>
         </aside>
 
-        <aside className="border-b border-border bg-card/40 p-4 xl:border-r xl:border-b-0">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                게시글 순서
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                화살표로 공개 순서를 바꿉니다.
-              </p>
-            </div>
-            <Button
-              size="sm"
-              onClick={startNewPost}
-              disabled={!selectedSubjectId}
-            >
-              <FilePlus2 />
-              새 글
-            </Button>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-            {subjectPosts.map((post, index) => (
-              <div
-                key={post.id}
-                className={
-                  'group rounded-xl border p-3 transition ' +
-                  (post.id === selectedPostId
-                    ? 'border-primary/30 bg-primary/[0.055]'
-                    : 'border-border bg-card hover:border-primary/20')
-                }
+        {postOrderOpen && (
+          <aside
+            id="admin-post-order-panel"
+            className="border-b border-border bg-card/40 p-4 xl:border-r xl:border-b-0"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                  게시글 순서
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  화살표로 공개 순서를 바꿉니다.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={startNewPost}
+                disabled={!selectedSubjectId}
               >
-                <button
-                  type="button"
-                  onClick={() => selectPost(post)}
-                  className="w-full text-left"
+                <FilePlus2 />
+                새 글
+              </Button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              {subjectPosts.map((post, index) => (
+                <div
+                  key={post.id}
+                  className={
+                    'group rounded-xl border p-3 transition ' +
+                    (post.id === selectedPostId
+                      ? 'border-primary/30 bg-primary/[0.055]'
+                      : 'border-border bg-card hover:border-primary/20')
+                  }
                 >
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="font-mono text-[10px] text-muted-foreground">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <StatusBadge status={post.status} />
+                  <button
+                    type="button"
+                    onClick={() => selectPost(post)}
+                    className="w-full text-left"
+                  >
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <StatusBadge status={post.status} />
+                    </div>
+                    <p className="line-clamp-2 text-sm font-bold leading-5">
+                      {post.title}
+                    </p>
+                  </button>
+                  <div className="mt-2 flex justify-end gap-1 opacity-60 group-hover:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      disabled={index === 0 || busy}
+                      onClick={() => movePost(post.id, -1)}
+                      aria-label="게시글 위로 이동"
+                    >
+                      <ArrowUp />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      disabled={index === subjectPosts.length - 1 || busy}
+                      onClick={() => movePost(post.id, 1)}
+                      aria-label="게시글 아래로 이동"
+                    >
+                      <ArrowDown />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon-xs"
+                      disabled={busy}
+                      onClick={() => {
+                        if (window.confirm('이 게시글을 삭제할까요?')) {
+                          void mutate({
+                            action: 'deletePost',
+                            id: post.id,
+                          }).then(() => startNewPost());
+                        }
+                      }}
+                      aria-label="게시글 삭제"
+                    >
+                      <Trash2 />
+                    </Button>
                   </div>
-                  <p className="line-clamp-2 text-sm font-bold leading-5">
-                    {post.title}
-                  </p>
-                </button>
-                <div className="mt-2 flex justify-end gap-1 opacity-60 group-hover:opacity-100">
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    disabled={index === 0 || busy}
-                    onClick={() => movePost(post.id, -1)}
-                    aria-label="게시글 위로 이동"
-                  >
-                    <ArrowUp />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    disabled={index === subjectPosts.length - 1 || busy}
-                    onClick={() => movePost(post.id, 1)}
-                    aria-label="게시글 아래로 이동"
-                  >
-                    <ArrowDown />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="icon-xs"
-                    disabled={busy}
-                    onClick={() => {
-                      if (window.confirm('이 게시글을 삭제할까요?')) {
-                        void mutate({ action: 'deletePost', id: post.id }).then(
-                          () => startNewPost(),
-                        );
-                      }
-                    }}
-                    aria-label="게시글 삭제"
-                  >
-                    <Trash2 />
-                  </Button>
                 </div>
-              </div>
-            ))}
-            {!subjectPosts.length && (
-              <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
-                이 과목의 첫 글을 작성해 보세요.
-              </div>
-            )}
-          </div>
-        </aside>
+              ))}
+              {!subjectPosts.length && (
+                <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+                  이 과목의 첫 글을 작성해 보세요.
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
 
         <section className="min-w-0 p-4 sm:p-6 lg:p-8">
           <div className="mx-auto max-w-4xl">

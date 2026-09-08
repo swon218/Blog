@@ -94,12 +94,9 @@ export function SubjectActions({ subject }: { subject: SubjectRecord }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href={'/admin?subject=' + encodeURIComponent(subject.id) + '&new=1'}
-          className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/85"
-        >
-          <FilePlus2 className="size-4" /> 게시물 추가
-        </Link>
+        <Button variant="outline" size="lg" onClick={() => setOpen(true)}>
+          <Pencil className="size-4" /> 과목 수정
+        </Button>
         <VisibilityControl
           key={`${subject.id}-${subject.visibility}-${subject.publicPostCount}-${subject.postCount}`}
           id={subject.id}
@@ -107,9 +104,12 @@ export function SubjectActions({ subject }: { subject: SubjectRecord }) {
           visibility={subject.visibility}
           warning={warning}
         />
-        <Button variant="outline" size="lg" onClick={() => setOpen(true)}>
-          <Pencil className="size-4" /> 과목 수정
-        </Button>
+        <Link
+          href={'/admin?subject=' + encodeURIComponent(subject.id) + '&new=1'}
+          className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/85"
+        >
+          <FilePlus2 className="size-4" /> 게시물 추가
+        </Link>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
